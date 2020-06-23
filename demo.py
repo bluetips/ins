@@ -31,6 +31,7 @@ def get_started(name):
 def get_pics(name):
     app = Ins(name)
     app.get_pics()
+    app.update_user_crawl_status(1)
 
 
 def get_tagged(name):
@@ -41,5 +42,6 @@ def get_tagged(name):
 if __name__ == '__main__':
     name = 'devonwindsor'
     get_pics(name)
+
     # get_comment(name)
     # get_started(name)

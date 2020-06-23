@@ -45,6 +45,35 @@ class Ins:
         self.comment_thread_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="pic_comment_")
         self.comment_thread_list = []
         self.started_thread_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="pic_started_")
+        self.update_user_crawl_status(0)
+
+    def update_user_crawl_status(self, flag):
+        if flag == 0:
+            connect = self.db_tool.pool.connection()
+            cursor = connect.cursor()
+            try:
+                cursor.execute(
+                    "insert into ins_user_status(user_id,username,status,pic_num,time,profile_url)values ('%s','%s','%s','%s','%s','%s')" % (
+                        self.user_id, self.username, '初始化', 0, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                        'https://www.instagram.com/{}/'.format(self.username)))
+                connect.commit()
+            except Exception:
+                cursor.execute(
+                    "update ins_user_status set status='%s' where user_id='%s'" % ('更新', self.user_id))
+                connect.commit()
+            connect.close()
+            cursor.close()
+        elif flag == 1:
+            connect = self.db_tool.pool.connection()
+            cursor = connect.cursor()
+            try:
+                cursor.execute('select count(*) from ins_pics where user_id="%s"' % (self.user_id))
+                pics_num = cursor.fetchone()[0]
+                cursor.execute("update ins_user_status set status='%s',pic_num='%s' where user_id='%s'" % (
+                    '结束', pics_num, self.user_id))
+                connect.commit()
+            except Exception:
+                pass
 
     def save_star(self, list, short):
         ret_list = []
@@ -222,7 +251,7 @@ class MysqlTool:
         #                                database="weibo", port=3306)
         # self.pool = PooledDB(pymysql, 5, host="139.196.91.125", user='weibo',
         #                      passwd='keith123', db='weibo', port=3306)
-        #
+
         self.connect = pymysql.connect(host="127.0.0.1", user="root", password="woaixuexi",
                                        database="chiccess", port=3306)
         self.pool = PooledDB(pymysql, 5, host="127.0.0.1", user='root',
@@ -337,13 +366,13 @@ class MysqlTool:
             conn.close()
 
 
-if __name__ == '__main__':
-    app = Ins('devonwindsor')
-    ret = app.db_tool.get_short('comment')
-    for i in ret:
-        i = i[0]
-        print('爬取{}的评'.format(i))
-        app.get_comment(short=i)
+# if __name__ == '__main__':
+#     app = Ins('devonwindsor')
+#     ret = app.db_tool.get_short('comment')
+#     for i in ret:
+#         i = i[0]
+#         print('爬取{}的评'.format(i))
+#         app.get_comment(short=i)
         # app.get_stars(short=i)
     # app.get_tagged()
     # app.get_pics()
