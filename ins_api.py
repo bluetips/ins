@@ -218,10 +218,15 @@ class Ins:
 
 class MysqlTool:
     def __init__(self):
-        self.connect = pymysql.connect(host="139.196.91.125", user="weibo", password="keith123",
-                                       database="weibo", port=3306)
-        self.pool = PooledDB(pymysql, 5, host="139.196.91.125", user='weibo',
-                             passwd='keith123', db='weibo', port=3306)
+        # self.connect = pymysql.connect(host="139.196.91.125", user="weibo", password="keith123",
+        #                                database="weibo", port=3306)
+        # self.pool = PooledDB(pymysql, 5, host="139.196.91.125", user='weibo',
+        #                      passwd='keith123', db='weibo', port=3306)
+        #
+        self.connect = pymysql.connect(host="127.0.0.1", user="root", password="woaixuexi",
+                                       database="chiccess", port=3306)
+        self.pool = PooledDB(pymysql, 5, host="127.0.0.1", user='root',
+                             passwd='woaixuexi', db='chiccess', port=3306)
 
     def get_ins_cookie(self):
         conn = self.pool.connection()
