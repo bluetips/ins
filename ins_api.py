@@ -29,16 +29,22 @@ class CookiExceptin(Exception):
 class Ins:
     def __init__(self, name):
         self.db_tool = MysqlTool()
+        self.start_time = int(time.time()) - 180 * 24 * 60 * 60
         self.pic_hash = 'eddbde960fed6bde675388aac39a3657'
         self.star_hash = 'd5d763b1e2acf209d62d22d184488e57'
         self.tag_hash = 'ff260833edf142911047af6024eb634a'
+        self.pic_tagged_hash = '72c1679c31e5f6570569a249eccadbd2'
         self.cookies = self.db_tool.get_ins_cookie()
         self.headers = {
             'cookie': self.cookies[0],
             'user-agent': 'Mozilla/5.0 (iPehone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1'
         }
         self.username = name
-        self.user_id = self.get_uid(name=name)
+        try:
+            self.user_id = self.get_uid(name=name)
+        except Exception:
+            print('获取用户失败{}'.format(self.username))
+            self.user_id = 0
         # self.myclient = pymongo.MongoClient("mongodb://139.196.91.125:27017/")
         # self.mydb = self.myclient["ins"]
         self.pic_thread_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="pic_info_")
@@ -145,6 +151,12 @@ class Ins:
             item['content'] = content
             item['short'] = data['node']['shortcode']
             item['time'] = data['node']['taken_at_timestamp']
+            if item['time'] < self.start_time:
+                try:
+                    self.db_tool.save_pics(ret_list)
+                except Exception:
+                    pass
+                return 0
             item['like_num'] = data['node']['edge_media_preview_like']['count']
             item['comment_num'] = data['node']['edge_media_to_comment']['count']
             item['user_id'] = self.user_id
@@ -154,6 +166,16 @@ class Ins:
             except Exception:
                 item['text'] = ''
                 pass
+            try:
+                pic_tagged_list = data['node']['edge_sidecar_to_children']['edges']
+                pic_next_list = []
+                for i in pic_tagged_list:
+                    l = i['node']['edge_media_to_tagged_user']['edges']
+                    for j in l:
+                        pic_next_list.append(j['node']['user']['username'])
+                item['pic_tagged'] = str(pic_next_list)
+            except Exception:
+                item['pic_tagged'] = ''
             ret_list.append(item)
         self.db_tool.save_pics(ret_list)
 
@@ -182,7 +204,9 @@ class Ins:
         for i in resp_list:
             short = i['node']['shortcode']
             ret_list.append(i)
-        self.save_pic(ret_list)
+        flag = self.save_pic(ret_list)
+        if flag == 0:
+            return
         last_code = resp['data']['user']['edge_owner_to_timeline_media']['page_info']['end_cursor']
 
         while resp['data']['user']['edge_owner_to_timeline_media']['page_info']['has_next_page']:
@@ -196,7 +220,9 @@ class Ins:
             for i in resp_list:
                 short = i['node']['shortcode']
                 ret_list.append(i)
-            self.save_pic(ret_list)
+            flag = self.save_pic(ret_list)
+            if flag == 0:
+                return
             last_code = resp['data']['user']['edge_owner_to_timeline_media']['page_info']['end_cursor']
 
     def get_uid(self, name):
@@ -218,6 +244,12 @@ class Ins:
             item['short'] = i['node']['shortcode']
             item['comment_num'] = i['node']['edge_media_to_comment']['count']
             item['time'] = i['node']['taken_at_timestamp']
+            if item['time'] < self.start_time:
+                try:
+                    self.db_tool.save_tagged(ret_list)
+                except Exception:
+                    pass
+                return 0
             item['owner_id'] = i['node']['owner']['id']
             item['owner_name'] = i['node']['owner']['username']
             item['content'] = i['node']['display_url']
@@ -234,7 +266,9 @@ class Ins:
         # resp = requests.get(url, headers=self.headers).json()
         resp = self.change_cookie(url)
         tag_list = resp['data']['user']['edge_user_to_photos_of_you']['edges']
-        self.save_tags(tag_list)
+        flag = self.save_tags(tag_list)
+        if flag == 0:
+            return
         while resp['data']['user']['edge_user_to_photos_of_you']['page_info']['has_next_page']:
             next_code = resp['data']['user']['edge_user_to_photos_of_you']['page_info']['end_cursor']
             url = base_url.format(self.tag_hash, uid, next_code)
@@ -242,7 +276,9 @@ class Ins:
             # resp = requests.get(url, headers=self.headers).json()
             resp = self.change_cookie(url)
             tag_list = resp['data']['user']['edge_user_to_photos_of_you']['edges']
-            self.save_tags(tag_list)
+            flag = self.save_tags(tag_list)
+            if flag == 0:
+                return
 
 
 class MysqlTool:
@@ -252,10 +288,15 @@ class MysqlTool:
         # self.pool = PooledDB(pymysql, 5, host="139.196.91.125", user='weibo',
         #                      passwd='keith123', db='weibo', port=3306)
 
-        self.connect = pymysql.connect(host="127.0.0.1", user="root", password="woaixuexi",
+        # self.connect = pymysql.connect(host="127.0.0.1", user="root", password="woaixuexi",
+        #                                database="chiccess", port=3306)
+        # self.pool = PooledDB(pymysql, 5, host="127.0.0.1", user='root',
+        #                      passwd='woaixuexi', db='chiccess', port=3306)
+
+        self.connect = pymysql.connect(host="127.0.0.1", user="root", password="",
                                        database="chiccess", port=3306)
         self.pool = PooledDB(pymysql, 5, host="127.0.0.1", user='root',
-                             passwd='woaixuexi', db='chiccess', port=3306)
+                             passwd='', db='chiccess', port=3306)
 
     def get_ins_cookie(self):
         conn = self.pool.connection()
@@ -268,14 +309,14 @@ class MysqlTool:
         return ret
 
     def save_pics(self, ret_list):
-        print('save_pics')
+        print('save_pics{}'.format(ret_list[0]['username']))
         ret_list = [(
             i['short'], i['time'], pymysql.escape_string(i['text']), i['content'], i['user_id'],
-            i['username'], i['like_num'], i['comment_num']
+            i['username'], i['like_num'], i['comment_num'], i['pic_tagged']
         ) for i in ret_list]
         try:
             cursor = self.connect.cursor()
-            sql_template = "insert into ins_pics(short,time,text,content,user_id,username,like_num,comment_num)values (%s,%s,%s,%s,%s,%s,%s,%s)"
+            sql_template = "insert into ins_pics(short,time,text,content,user_id,username,like_num,comment_num,pic_tagged)values (%s,%s,%s,%s,%s,%s,%s,%s,%s)"
             cursor.executemany(sql_template, ret_list)
             self.connect.commit()
         except Exception:
@@ -289,6 +330,7 @@ class MysqlTool:
         pass
 
     def save_tagged(self, ret_list):
+        print('save_tagged{}'.format(ret_list[0]['username']))
         ret_list = [(
             i['short'], i['time'], pymysql.escape_string(i['text']), i['content'], i['_typename'], i['user_id'],
             i['username'],
@@ -364,28 +406,3 @@ class MysqlTool:
         finally:
             cursor.close()
             conn.close()
-
-
-# if __name__ == '__main__':
-#     app = Ins('devonwindsor')
-#     ret = app.db_tool.get_short('comment')
-#     for i in ret:
-#         i = i[0]
-#         print('爬取{}的评'.format(i))
-#         app.get_comment(short=i)
-        # app.get_stars(short=i)
-    # app.get_tagged()
-    # app.get_pics()
-
-    # for future in as_completed(app.comment_thread_list):
-    #     print('插入评论成功')
-    #     pass
-    #     uid = app.get_uid('elkin')
-    #     app.get_tagged(uid)
-    #     # app.get_pics(uid)
-    #     # ret = app.mydb['pic'].find()
-    #     # for i in ret:
-    #     #     app.get_stars(short=i['short'])
-    #     #     app.get_comment(short=i['short'])
-    #     #     time.sleep(10)
-    #     #     pass
