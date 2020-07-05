@@ -9,6 +9,7 @@
 import random
 import re
 import time
+import traceback
 from concurrent.futures._base import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
 
@@ -324,8 +325,9 @@ class MysqlTool:
             for ret in ret_list:
                 try:
                     cursor.execute(sql_template % (ret))
-                except Exception:
-                    print(Exception)
+                except Exception as e:
+                    print(e.args)
+                    print(traceback.format_exc())
             self.connect.commit()
         pass
 
