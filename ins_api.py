@@ -325,7 +325,7 @@ class MysqlTool:
                 try:
                     cursor.execute(sql_template % (ret))
                 except Exception:
-                    print('inert error',Exception)
+                    print(Exception)
             self.connect.commit()
         pass
 
