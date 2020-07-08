@@ -67,6 +67,26 @@ def thread_pool_run_pics():
             pics_pool.submit(get_pics, name)
 
 
+def thread_pool_run_comment():
+    pics_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="pic_")
+    # db_tool = MysqlTool()
+    # cursor = db_tool.connect.cursor()
+    # cursor.execute('select distinct username as name from ins_pics;')
+    # ret = cursor.fetchall()
+    # ret = [i[0] for i in ret]
+    ins_ids = csv.reader(open('./ins.csv'))
+    pn = 0
+    for ins_id in ins_ids:
+        # if pn < 2:
+        #     pn += 1
+        #     continue
+        # elif ins_id[1] in ret:
+        #     continue
+        # else:
+        name = ins_id[1]
+        pics_pool.submit(get_comment, name)
+
+
 def thread_pool_run_tagged():
     pics_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="tagged_")
     db_tool = MysqlTool()
@@ -86,5 +106,6 @@ def thread_pool_run_tagged():
 
 if __name__ == '__main__':
     # get_pics('virat.kohli')
-    #edge_sidecar_to_children
-    thread_pool_run_pics()
+    # edge_sidecar_to_children
+    # thread_pool_run_pics()
+    thread_pool_run_comment()

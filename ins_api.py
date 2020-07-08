@@ -6,6 +6,7 @@
 @Software: PyCharm 
 @desc: 
 """
+import json
 import random
 import re
 import time
@@ -229,6 +230,10 @@ class Ins:
     def get_uid(self, name):
         url = 'https://www.instagram.com/{}/tagged/'.format(name)
         resp = requests.get(url, headers=self.headers)
+        json_data = \
+            json.loads(re.findall(r'window._sharedData = (.*?);</script>', resp.content.decode())[0])['entry_data'][
+                'ProfilePage'][0]
+        self.db_tool.save_user_profile(json_data)
         return re.findall('"owner":\{"id":"(\d+)"', resp.content.decode())[0]
 
     def save_tags(self, data):
@@ -298,6 +303,23 @@ class MysqlTool:
                                        database="chiccess", port=3306)
         self.pool = PooledDB(pymysql, 5, host="127.0.0.1", user='root',
                              passwd='', db='chiccess', port=3306)
+
+    def save_user_profile(self, json_data):
+        data = json_data['graphql']['user']
+        conn = self.pool.connection()
+        cursor = conn.cursor()
+        try:
+            _sql = 'insert into ins_user_profile(id,profile_pic_url,username,full_name,follow,followed_by,media_num,video_num)values ("%s","%s","%s","%s","%s","%s","%s","%s")'
+            cursor.execute(_sql % (
+                data['id'], data['profile_pic_url'], data['username'], data['full_name'], data['edge_follow']['count'],
+                data['edge_followed_by']['count'], data['edge_owner_to_timeline_media']['count'],
+                data['edge_felix_video_timeline']['count']))
+        except Exception:
+            _sql = 'update table ins_user_profile set follow="%s",followed_by="%s",media_num="%s",video_num="%s" where username="%s"'
+            cursor.execute(_sql % (data['edge_follow']['count'],
+                                   data['edge_followed_by']['count'], data['edge_owner_to_timeline_media']['count'],
+                                   data['edge_felix_video_timeline']['count'], data['username']))
+        conn.commit()
 
     def get_ins_cookie(self):
         conn = self.pool.connection()
