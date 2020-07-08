@@ -39,6 +39,10 @@ def get_pics(name):
         app.update_user_crawl_status(1)
 
 
+def get_pics_1(name):
+    app = Ins(name)
+
+
 def get_tagged(name):
     app = Ins(name)
     if app.user_id == 0:
@@ -77,7 +81,7 @@ def thread_pool_run_pics_2():
             continue
         else:
             name = ins_id[1]
-            pics_pool.submit(get_pics, name)
+            pics_pool.submit(get_pics_1, name)
 
 
 def thread_pool_run_tagged():
