@@ -38,7 +38,7 @@ class Ins:
         self.pic_tagged_hash = '72c1679c31e5f6570569a249eccadbd2'
         self.cookies = self.db_tool.get_ins_cookie()
         self.headers = {
-            'cookie': self.cookies[0],
+            'cookie': self.cookies[1],
             'user-agent': 'Mozilla/5.0 (iPehone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1'
         }
         self.username = name
@@ -289,20 +289,20 @@ class Ins:
 
 class MysqlTool:
     def __init__(self):
-        # self.connect = pymysql.connect(host="139.196.91.125", user="weibo", password="keith123",
-        #                                database="weibo", port=3306)
-        # self.pool = PooledDB(pymysql, 5, host="139.196.91.125", user='weibo',
-        #                      passwd='keith123', db='weibo', port=3306)
+        self.connect = pymysql.connect(host="139.196.91.125", user="weibo", password="keith123",
+                                       database="weibo", port=3306)
+        self.pool = PooledDB(pymysql, 5, host="139.196.91.125", user='weibo',
+                             passwd='keith123', db='weibo', port=3306)
 
         # self.connect = pymysql.connect(host="127.0.0.1", user="root", password="woaixuexi",
         #                                database="chiccess", port=3306)
         # self.pool = PooledDB(pymysql, 5, host="127.0.0.1", user='root',
         #                      passwd='woaixuexi', db='chiccess', port=3306)
-
-        self.connect = pymysql.connect(host="127.0.0.1", user="root", password="",
-                                       database="chiccess", port=3306)
-        self.pool = PooledDB(pymysql, 5, host="127.0.0.1", user='root',
-                             passwd='', db='chiccess', port=3306)
+        #
+        # self.connect = pymysql.connect(host="127.0.0.1", user="root", password="",
+        #                                database="chiccess", port=3306)
+        # self.pool = PooledDB(pymysql, 5, host="127.0.0.1", user='root',
+        #                      passwd='', db='chiccess', port=3306)
 
     def save_user_profile(self, json_data):
         data = json_data['graphql']['user']
