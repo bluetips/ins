@@ -206,7 +206,6 @@ class Ins:
         url = 'https://www.instagram.com/graphql/query/?query_hash={}&variables=%7B%22id%22%3A%22{}%22%2C%22first%22%3A50%7D'.format(
             self.pic_hash, uid)
         resp = self.change_cookie(url)
-
         resp_list = resp['data']['user']['edge_owner_to_timeline_media'][
             'edges']
         ret_list = []

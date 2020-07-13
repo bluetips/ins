@@ -7,6 +7,7 @@
 @desc: 
 """
 import csv
+import time
 from concurrent.futures.thread import ThreadPoolExecutor
 
 from ins_api import Ins, MysqlTool
@@ -69,6 +70,8 @@ def thread_pool_run_pics():
         else:
             name = ins_id[1]
             pics_pool.submit(get_pics, name)
+    while 1:
+        time.sleep(1)
 
 
 def thread_pool_run_pics_2():
