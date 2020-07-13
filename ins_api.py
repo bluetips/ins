@@ -65,9 +65,9 @@ class Ins:
                     "insert into ins_user_status(user_id,username,status,pic_num,time,profile_url,profile_pic_url,follow,followed_by,media_num,video_num,intorduce)values ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" % (
                         self.user_id, self.username, '初始化', 0, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                         'https://www.instagram.com/{}/'.format(self.username), data['profile_pic_url'],
-                    data['edge_follow']['count'],
-                    data['edge_followed_by']['count'], data['edge_owner_to_timeline_media']['count'],
-                    data['edge_felix_video_timeline']['count'], data['biography']))
+                        data['edge_follow']['count'],
+                        data['edge_followed_by']['count'], data['edge_owner_to_timeline_media']['count'],
+                        data['edge_felix_video_timeline']['count'], data['biography']))
                 connect.commit()
             except Exception:
                 cursor.execute(
@@ -178,10 +178,10 @@ class Ins:
                 for i in pic_tagged_list:
                     l = i['node']['edge_media_to_tagged_user']['edges']
                     for j in l:
-                        item = {}
-                        item['username'] = j['node']['user']['username']
-                        item['position'] = str(j['node']['x']) + ',' + str(j['node']['y'])
-                        pic_next_list.append(item)
+                        it = {}
+                        it['username'] = j['node']['user']['username']
+                        it['position'] = str(j['node']['x']) + ',' + str(j['node']['y'])
+                        pic_next_list.append(it)
                 item['pic_tagged'] = json.dumps(pic_next_list)
             except Exception:
                 item['pic_tagged'] = ''
@@ -340,10 +340,16 @@ class MysqlTool:
 
     def save_pics(self, ret_list):
         print('save_pics{}'.format(ret_list[0]['username']))
-        ret_list = [(
-            i['short'], i['time'], pymysql.escape_string(i['text']), i['content'], i['user_id'],
-            i['username'], i['like_num'], i['comment_num'], i['pic_tagged']
-        ) for i in ret_list]
+        r = []
+        for i in ret_list:
+            try:
+                r.append((
+                    i['short'], i['time'], pymysql.escape_string(i['text']), i['content'], i['user_id'],
+                    i['username'], i['like_num'], i['comment_num'], i['pic_tagged']
+                ))
+            except Exception:
+                pass
+        ret_list = r
         try:
             cursor = self.connect.cursor()
             sql_template = "insert into ins_pics(short,time,text,content,user_id,username,like_num,comment_num,pic_tagged)values (%s,%s,%s,%s,%s,%s,%s,%s,%s)"

@@ -106,7 +106,7 @@ def thread_pool_run_tagged():
 
 
 if __name__ == '__main__':
-    # get_pics('skims')
+    get_pics('skims')
     # edge_sidecar_to_children
     # thread_pool_run_pics()
-    thread_pool_run_comment()
+    # thread_pool_run_comment()
