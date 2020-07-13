@@ -65,6 +65,7 @@ def thread_pool_run_pics():
         else:
             name = ins_id[1]
             pics_pool.submit(get_pics, name)
+            # get_pics(name)
 
 
 def thread_pool_run_comment():
@@ -105,7 +106,7 @@ def thread_pool_run_tagged():
 
 
 if __name__ == '__main__':
-    # get_pics('virat.kohli')
+    # get_pics('skims')
     # edge_sidecar_to_children
     # thread_pool_run_pics()
     thread_pool_run_comment()

@@ -104,4 +104,5 @@ def thread_pool_run_tagged():
 if __name__ == '__main__':
     # get_pics('virat.kohli')
     # edge_sidecar_to_children
-    thread_pool_run_pics_2()
+    # thread_pool_run_pics_2()
+    thread_pool_run_pic()

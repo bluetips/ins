@@ -43,7 +43,8 @@ class Ins:
         }
         self.username = name
         try:
-            self.user_id = self.get_uid(name=name)
+            self.user_id, self.json_data = self.get_uid(name=name)
+            self.update_user_crawl_status(0)
         except Exception:
             print('获取用户失败{}'.format(self.username))
             self.user_id = 0
@@ -53,17 +54,20 @@ class Ins:
         self.comment_thread_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="pic_comment_")
         self.comment_thread_list = []
         self.started_thread_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="pic_started_")
-        self.update_user_crawl_status(0)
 
     def update_user_crawl_status(self, flag):
         if flag == 0:
             connect = self.db_tool.pool.connection()
             cursor = connect.cursor()
+            data = self.json_data['graphql']['user']
             try:
                 cursor.execute(
-                    "insert into ins_user_status(user_id,username,status,pic_num,time,profile_url)values ('%s','%s','%s','%s','%s','%s')" % (
+                    "insert into ins_user_status(user_id,username,status,pic_num,time,profile_url,profile_pic_url,follow,followed_by,media_num,video_num,intorduce)values ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" % (
                         self.user_id, self.username, '初始化', 0, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                        'https://www.instagram.com/{}/'.format(self.username)))
+                        'https://www.instagram.com/{}/'.format(self.username), data['profile_pic_url'],
+                    data['edge_follow']['count'],
+                    data['edge_followed_by']['count'], data['edge_owner_to_timeline_media']['count'],
+                    data['edge_felix_video_timeline']['count'], data['biography']))
                 connect.commit()
             except Exception:
                 cursor.execute(
@@ -174,8 +178,11 @@ class Ins:
                 for i in pic_tagged_list:
                     l = i['node']['edge_media_to_tagged_user']['edges']
                     for j in l:
-                        pic_next_list.append(j['node']['user']['username'])
-                item['pic_tagged'] = str(pic_next_list)
+                        item = {}
+                        item['username'] = j['node']['user']['username']
+                        item['position'] = str(j['node']['x']) + ',' + str(j['node']['y'])
+                        pic_next_list.append(item)
+                item['pic_tagged'] = json.dumps(pic_next_list)
             except Exception:
                 item['pic_tagged'] = ''
             ret_list.append(item)
@@ -233,8 +240,9 @@ class Ins:
         json_data = \
             json.loads(re.findall(r'window._sharedData = (.*?);</script>', resp.content.decode())[0])['entry_data'][
                 'ProfilePage'][0]
-        self.db_tool.save_user_profile(json_data)
-        return re.findall('"owner":\{"id":"(\d+)"', resp.content.decode())[0]
+        # self.db_tool.save_user_profile(json_data)
+        # self.update_user_crawl_status(0)
+        return re.findall('"owner":\{"id":"(\d+)"', resp.content.decode())[0], json_data
 
     def save_tags(self, data):
         ret_list = []
@@ -289,20 +297,20 @@ class Ins:
 
 class MysqlTool:
     def __init__(self):
-        self.connect = pymysql.connect(host="139.196.91.125", user="weibo", password="keith123",
-                                       database="weibo", port=3306)
-        self.pool = PooledDB(pymysql, 5, host="139.196.91.125", user='weibo',
-                             passwd='keith123', db='weibo', port=3306)
+        # self.connect = pymysql.connect(host="139.196.91.125", user="weibo", password="keith123",
+        #                                database="weibo", port=3306)
+        # self.pool = PooledDB(pymysql, 5, host="139.196.91.125", user='weibo',
+        #                      passwd='keith123', db='weibo', port=3306)
 
         # self.connect = pymysql.connect(host="127.0.0.1", user="root", password="woaixuexi",
         #                                database="chiccess", port=3306)
         # self.pool = PooledDB(pymysql, 5, host="127.0.0.1", user='root',
         #                      passwd='woaixuexi', db='chiccess', port=3306)
         #
-        # self.connect = pymysql.connect(host="127.0.0.1", user="root", password="",
-        #                                database="chiccess", port=3306)
-        # self.pool = PooledDB(pymysql, 5, host="127.0.0.1", user='root',
-        #                      passwd='', db='chiccess', port=3306)
+        self.connect = pymysql.connect(host="127.0.0.1", user="root", password="",
+                                       database="chiccess", port=3306)
+        self.pool = PooledDB(pymysql, 5, host="127.0.0.1", user='root',
+                             passwd='', db='chiccess', port=3306)
 
     def save_user_profile(self, json_data):
         data = json_data['graphql']['user']
@@ -315,7 +323,7 @@ class MysqlTool:
                 data['edge_followed_by']['count'], data['edge_owner_to_timeline_media']['count'],
                 data['edge_felix_video_timeline']['count']))
         except Exception:
-            _sql = 'update table ins_user_profile set follow="%s",followed_by="%s",media_num="%s",video_num="%s" where username="%s"'
+            _sql = 'update ins_user_profile set follow="%s",followed_by="%s",media_num="%s",video_num="%s" where username="%s"'
             cursor.execute(_sql % (data['edge_follow']['count'],
                                    data['edge_followed_by']['count'], data['edge_owner_to_timeline_media']['count'],
                                    data['edge_felix_video_timeline']['count'], data['username']))
